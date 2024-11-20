@@ -115,3 +115,30 @@ class UserListView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend]  # Filtrlar backendini qo'shish
     filterset_class = UserFilter  # Filtrlash uchun filterset_class ni belgilash
 
+
+
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .models import Course, Group
+from .serializers import CourseSerializer, GroupSerializer
+from .permissions import IsAdminOrTeacher
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+
+    def perform_create(self, serializer):
+        # Teacher kurs yaratadi
+        serializer.save(teacher=self.request.user)
+
+class GroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+
+    def perform_create(self, serializer):
+        # Admin yoki teacher guruh yaratadi
+        serializer.save(created_by=self.request.user)
+
+
