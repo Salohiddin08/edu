@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+import random
 
 class User(AbstractUser):
     # User rollari uchun choices
@@ -16,8 +17,23 @@ class User(AbstractUser):
         default='student',  # Default 'student' rolini belgilaymiz
     )
 
+    def create_verify_code(self):
+        code = random.randint(10000,99999)
+        UserConfirmation.objects.create(
+            user=self,
+            code=code
+        )
+        return code
+    
+
+class UserConfirmation(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='confirmation')
+    code = models.CharField(max_length=5)
+    is_confirmed = models.BooleanField(default=False)
+
+
     def __str__(self):
-        return self.username
+        return f"Confirmation for {self.user.username}"
 
 
 

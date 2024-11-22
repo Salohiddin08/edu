@@ -57,6 +57,18 @@ SPECTACULAR_SETTINGS = {
     'REDOC_DIST': 'SIDECAR',
     # OTHER SETTINGS
 }
+# settings.py
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Access token expiry (30 minutes in this case)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Refresh token expiry (7 days in this case)
+    'ROTATE_REFRESH_TOKENS': True,                    # Whether to rotate refresh tokens
+    'BLACKLIST_AFTER_ROTATION': True,                 # Whether to blacklist refresh tokens after rotation
+
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

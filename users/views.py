@@ -5,12 +5,12 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
-from .models import User
-from .serializers import UserSerializer, LoginSerializer, UserListSerializer
+from .models import User, UserConfirmation
+from .serializers import UserSerializer, LoginSerializer, UserListSerializer, UserConfirmationCodeSerializer
 from rest_framework import generics
 
 
-# Register View - Ro'yxatdan o'tish
+# Register View - Ro'yxatdan o'tish 
 class RegisterView(APIView):
     permission_classes = [AllowAny]  # Autentifikatsiya talab qilinmasin
 
@@ -83,7 +83,6 @@ class TokenRefreshView(APIView):
             return Response({'error': 'Refresh token is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Refresh tokenni yangilash
             token = RefreshToken(refresh_token)
             new_access_token = str(token.access_token)
             return Response({'access_token': new_access_token})
@@ -142,3 +141,14 @@ class GroupViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
+class UserConfirmationCodeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        user = request.user
+        code = request.data.get('code')
+        user_confirm = UserConfirmation.objects.filter(user=user, code=code, is_confirmed=False).first()
+        if user_confirm:
+            user_confirm.is_confirmed = True
+            user_confirm.save()
+            return Response({'message': 'User confirmed successfully!'}, status=status.HTTP_200_OK)
+        return Response(data={'message': 'User unconfirmed successfully!'}, status=status.HTTP_400_BAD_REQUEST)

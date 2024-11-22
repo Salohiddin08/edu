@@ -1,8 +1,7 @@
-# api/serializers.py
 
 from rest_framework import serializers
 from .models import User
-
+from .send_phone_code import send_phone_code
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -11,8 +10,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)  # Userni yaratish
+        code = user.create_verify_code() #
+        send_phone_code(code=code) 
         return user
-# api/serializers.py
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -40,3 +41,8 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ['id', 'name', 'course', 'students', 'created_by']
+
+
+
+class UserConfirmationCodeSerializer(serializers.Serializer):
+    code = serializers.CharField()
