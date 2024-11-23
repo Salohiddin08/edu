@@ -19,6 +19,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from users.views import CourseViewSet, GroupViewSet
 
+
+
 router = DefaultRouter()
 router.register('courses', CourseViewSet, basename='course')
 router.register('groups', GroupViewSet, basename='group')
@@ -27,5 +29,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/', include('users.urls')),
     path('', include(router.urls)),
-
+    path('Students/', include('Students.urls')),
 ]
+ 

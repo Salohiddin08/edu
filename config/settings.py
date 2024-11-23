@@ -42,13 +42,14 @@ INSTALLED_APPS = [
     'users',
     'django_filters',
     'drf_spectacular',
+    'Students',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',  # Avtorizatsiya talab qilinadi
+        'rest_framework.permissions.AllowAny',  # Avtorizatsiya talab qilinadi
     ),
 }    
 SPECTACULAR_SETTINGS = {
