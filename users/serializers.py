@@ -35,14 +35,17 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = ['id', 'name', 'description', 'teacher']
 
+from rest_framework import serializers
+from .models import Group
+from django.contrib.auth import get_user_model
+
 class GroupSerializer(serializers.ModelSerializer):
-    students = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role='student'), many=True)
+    students = serializers.PrimaryKeyRelatedField(queryset=get_user_model().objects.filter(role='student'), many=True)
 
     class Meta:
         model = Group
-        fields = ['id', 'name', 'course', 'students', 'created_by']
+        fields = ['id', 'name', 'course', 'students', 'created_by', 'study_time', 'days_of_week']
 
 
 
-class UserConfirmationCodeSerializer(serializers.Serializer):
-    code = serializers.CharField()
+

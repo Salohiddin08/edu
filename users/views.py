@@ -6,7 +6,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError
 from .models import User, UserConfirmation
-from .serializers import UserSerializer, LoginSerializer, UserListSerializer, UserConfirmationCodeSerializer
+from.send_phone_code import send_phone_code
+from .serializers import UserSerializer, LoginSerializer, UserListSerializer
 from rest_framework import generics
 
 
@@ -15,11 +16,9 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]  # Autentifikatsiya talab qilinmasin
 
     def post(self, request):
-        # Foydalanuvchi ro'yxatdan o'tish
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # JWT token yaratish
             token = RefreshToken.for_user(user)
             return Response({
                 'message': 'User created successfully!',
@@ -31,20 +30,17 @@ class RegisterView(APIView):
 
 # Login View - Kirish
 class LoginView(APIView):
-    permission_classes = [AllowAny]  # Avtorizatsiya talab qilinmaydi
+    permission_classes = [AllowAny]  
 
     def post(self, request):
-        # Kirish uchun ma'lumotlar
         username = request.data.get('username', None)
         email = request.data.get('email', None)
         phone = request.data.get('phone', None)
         password = request.data.get('password', None)
-
-        # Foydalanuvchi nima bilan kirayotgani aniqlanishi kerak
         if not (username or email or phone):
             return Response({'error': 'Username, email, or phone is required.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Foydalanuvchini tekshirish
+        # Foydalanuvchini tekshiris
         user = None
         if username:
             user = authenticate(username=username, password=password)
@@ -130,25 +126,85 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Teacher kurs yaratadi
         serializer.save(teacher=self.request.user)
+from rest_framework import viewsets
+from .models import Group
+from .serializers import GroupSerializer
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsAdminOrTeacher
 
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
 
+
+
     def perform_create(self, serializer):
         # Admin yoki teacher guruh yaratadi
         serializer.save(created_by=self.request.user)
 
-
+from django.utils import timezone
+from rest_framework.exceptions import  ValidationError
 class UserConfirmationCodeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
         code = request.data.get('code')
-        user_confirm = UserConfirmation.objects.filter(user=user, code=code, is_confirmed=False).first()
-        if user_confirm:
-            user_confirm.is_confirmed = True
-            user_confirm.save()
-            return Response({'message': 'User confirmed successfully!'}, status=status.HTTP_200_OK)
-        return Response(data={'message': 'User unconfirmed successfully!'}, status=status.HTTP_400_BAD_REQUEST)
+        self.check_verify(user=user, code=code)
+        return Response(data={
+            'message': 'User confirmed successfully!',
+            'access_token' : user.token()['access'],
+            'refresh_token' : user.token()['refresh'],
+
+        }, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def check_verify(user, code):
+        verifies = UserConfirmation.objects.filter(user=user, code=code, is_confirmed=False, expires_at__gte=timezone.now())
+        if not verifies.exists():
+            data = {
+                'error': 'Invalid confirmation code or expiration'
+
+            }
+            raise ValidationError(data)
+        user_confirm = verifies.first()
+        user_confirm.is_confirmed = True
+        user_confirm.save()
+        return True
+    
+
+class GetNewCode(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        self.check_new_verify(user=user)
+        code = user.create_verify_code()
+        latest_code = user.verify_codes.order_by('-created_at').first()
+        user.verify_codes.exclude(id=latest_code.id).delete()
+        send_phone_code(code=code)
+        return Response(data={
+            'message':"Code returned sent",
+            'access_token':user.token()['access'],
+            'refresh_token':user.token()['refresh'],
+
+        },status=status.HTTP_201_CREATED)
+    @staticmethod
+    def check_new_verify(user):
+        verifies = UserConfirmation.objects.filter(expires_at__gte=timezone.now(), is_confirmed=False, user=user)
+        print(verifies)
+        if verifies.exists():
+            raise ValidationError({
+                'error': 'User already has a pending confirmation.'
+            })
+        return True
+
+
+
+        
+
+        # user_confirm = UserConfirmation.objects.filter(user=user, code=code, is_confirmed=False).first()
+        # if user_confirm:
+        #     user_confirm.is_confirmed = True
+        #     user_confirm.save()
+        #     return Response({'message': 'User confirmed successfully!'}, status=status.HTTP_200_OK)
+        # return Response(data={'message': 'User unconfirmed successfully!'}, status=status.HTTP_400_BAD_REQUEST)

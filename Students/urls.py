@@ -1,19 +1,29 @@
-from rest_framework.routers import DefaultRouter
-from django.urls import path, include
+# from rest_framework.routers import DefaultRouter
+# from django.urls import path, include
 
-# from .views import StudentViewSet
+# # from .views import StudentViewSet
 
-# router = DefaultRouter()
+# # router = DefaultRouter()
 
-# router.register(r'', StudentViewSet, basename='student')
+# # router.register(r'', StudentViewSet, basename='student')
+
+# # urlpatterns = [
+# #     path('', include(router.urls)),
+# # ]
+
+# from .views import StudentAPIView, StudentDetailAPIView
 
 # urlpatterns = [
-#     path('', include(router.urls)),
+#     path('students/', StudentAPIView.as_view(), name='student-list'),
+#     path('students/<int:pk>/', StudentDetailAPIView.as_view(), name='student-detail'),
 # ]
 
-from .views import StudentAPIView, StudentDetailAPIView
+from django.urls import path
+from .views import StudentAPIView, StudentDetailAPIView, MarkAttendanceAPIView, MakePaymentAPIView
 
 urlpatterns = [
-    path('students/', StudentAPIView.as_view(), name='student-list'),
+    path('', StudentAPIView.as_view(), name='student-list'),
     path('students/<int:pk>/', StudentDetailAPIView.as_view(), name='student-detail'),
+    path('students/<int:student_id>/attendance/', MarkAttendanceAPIView.as_view(), name='mark-attendance'),
+    path('students/<int:student_id>/payment/', MakePaymentAPIView.as_view(), name='make-payment'),
 ]
